@@ -10,6 +10,7 @@ import colorama
 import gensim.models.keyedvectors as word2vec
 import numpy as np
 from nltk.corpus import wordnet_ic
+from players.online import OnlineCodemaster, OnlineGuesser
 
 class GameCondition(enum.Enum):
     """Enumeration that represents the different states of the game"""
@@ -25,7 +26,7 @@ class Game:
     """Class that setups up game details and calls Guesser/Codemaster pair to play the game
     """
 
-    def __init__(self, codemaster, guesser,
+    def __init__(self, codemaster, guesser, clientsocket,
                  seed="time", do_print=True, do_log=True, game_name="default",
                  cm_kwargs={}, g_kwargs={}):
         """ Setup Game details
@@ -60,8 +61,8 @@ class Game:
             self._save_stdout = sys.stdout
             sys.stdout = open(os.devnull, 'w')
 
-        self.codemaster = codemaster(**cm_kwargs)
-        self.guesser = guesser(**g_kwargs)
+        self.codemaster = OnlineCodemaster(clientsocket, codemaster, cm_kwargs)
+        self.guesser = OnlineGuesser(clientsocket, guesser, g_kwargs)
 
         self.cm_kwargs = cm_kwargs
         self.g_kwargs = g_kwargs
@@ -126,13 +127,13 @@ class Game:
         for i in range(len(self.words_on_board)):
             if counter >= 1 and i % 5 == 0:
                 print("\n")
-            if self.key_grid[i] is 'Red':
+            if self.key_grid[i] == 'Red':
                 print(str.center(colorama.Fore.RED + self.words_on_board[i], 15), " ", end='')
                 counter += 1
-            elif self.key_grid[i] is 'Blue':
+            elif self.key_grid[i] == 'Blue':
                 print(str.center(colorama.Fore.BLUE + self.words_on_board[i], 15), " ", end='')
                 counter += 1
-            elif self.key_grid[i] is 'Civilian':
+            elif self.key_grid[i] == 'Civilian':
                 print(str.center(colorama.Fore.RESET + self.words_on_board[i], 15), " ", end='')
                 counter += 1
             else:
@@ -163,13 +164,13 @@ class Game:
         for i in range(len(self.key_grid)):
             if counter >= 1 and i % 5 == 0:
                 print("\n")
-            if self.key_grid[i] is 'Red':
+            if self.key_grid[i] == 'Red':
                 print(str.center(colorama.Fore.RED + self.key_grid[i], 15), " ", end='')
                 counter += 1
-            elif self.key_grid[i] is 'Blue':
+            elif self.key_grid[i] == 'Blue':
                 print(str.center(colorama.Fore.BLUE + self.key_grid[i], 15), " ", end='')
                 counter += 1
-            elif self.key_grid[i] is 'Civilian':
+            elif self.key_grid[i] == 'Civilian':
                 print(str.center(colorama.Fore.RESET + self.key_grid[i], 15), " ", end='')
                 counter += 1
             else:
@@ -264,7 +265,7 @@ class Game:
         if os.path.exists("results") and os.path.isdir("results"):
             shutil.rmtree("results")
 
-    def run(self):
+    async def run(self):
         """Function that runs the codenames game between codemaster and guesser"""
         game_condition = GameCondition.HIT_RED
         game_counter = 0
@@ -273,12 +274,12 @@ class Game:
             print('\n' * 2)
             words_in_play = self.get_words_on_board()
             current_key_grid = self.get_key_grid()
-            self.codemaster.set_game_state(words_in_play, current_key_grid)
+            await self.codemaster.set_game_state(words_in_play, current_key_grid)
             self._display_key_grid()
             self._display_board_codemaster()
 
             # codemaster gives clue & number here
-            clue, clue_num = self.codemaster.get_clue()
+            clue, clue_num = await self.codemaster.get_clue()
             game_counter += 1
             keep_guessing = True
             guess_num = 0
@@ -289,8 +290,8 @@ class Game:
 
             game_condition = GameCondition.HIT_RED
             while guess_num <= clue_num and keep_guessing and game_condition == GameCondition.HIT_RED:
-                self.guesser.set_board(words_in_play)
-                guess_answer = self.guesser.get_answer()
+                await self.guesser.set_board(words_in_play)
+                guess_answer = await self.guesser.get_answer()
 
                 # if no comparisons were made/found than retry input from codemaster
                 if guess_answer is None or guess_answer == "no comparisons":
@@ -303,7 +304,8 @@ class Game:
                     self._display_board_codemaster()
                     guess_num += 1
                     print("Keep Guessing? the clue is ", clue, clue_num)
-                    keep_guessing = self.guesser.keep_guessing()
+                    if (guess_num <= clue_num):
+                        keep_guessing = await self.guesser.keep_guessing()
 
                 # if guesser selected a civilian or a blue-paired word
                 elif game_condition == GameCondition.CONTINUE:
