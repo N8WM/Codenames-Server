@@ -38,10 +38,10 @@ class OnlineHumanCodemaster(Codemaster):
             await send(self.clientsocket, json.dumps(msg))
             return await self.get_clue()
 
-        clue[0] = clue[0].upper().strip()
+        clue[0] = clue[0].lower().strip()
         clue[1] = int(clue[1].strip())
 
-        return clue
+        return clue[0], clue[1]
     
     def _is_valid(self, clue):
         """Check if the clue is valid"""
@@ -85,7 +85,7 @@ class OnlineHumanGuesser(Guesser):
             await send(self.clientsocket, json.dumps(msg))
             return await self.get_answer()
 
-        answer = answer.strip()
+        answer = answer.strip().lower()
         return answer
 
     async def keep_guessing(self):
@@ -151,7 +151,7 @@ class OnlineGuesser(Guesser):
             answer = await self.guesser.get_answer()
         else:
             answer = self.guesser.get_answer()
-        msg = {"guess_success": self.words.index(answer)}
+        msg = {"guess_success": self.words.index(answer.upper().strip())}
         await send(self.clientsocket, json.dumps(msg))
         return answer
 

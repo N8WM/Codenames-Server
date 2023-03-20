@@ -25,7 +25,7 @@ async def RunGame(clientsocket):
     Game.clear_results()
     seed = 0
 
-    g_kwargs = {"vectors": [w2v]} #, glove_100d]}
+    g_kwargs = {"vectors": [w2v, glove_100d]}
 
     await Game(
         OnlineHumanCodemaster,
