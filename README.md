@@ -1,5 +1,7 @@
 # Codenames AI Competition Framework
 
+#### Note: This project works hand-in-hand with the [Codenames UI](https://github.com/N8WM/Codenames) repository.
+
 This is the Codenames AI Competition Framework.  The purpose of this framework is to enable an AI competition for the game "Codenames" by Vlaada Chvatil.  There are large number of AI competitions built around games (and even more platforms using games as a testbed for AI), but with few exceptions these have focused on things that AI is likely to be good at (fine, pixel-perfect control or search through a large state space).  The purpose of this competition is to test AI in a framework that:
 
 * Requires the understanding of language
