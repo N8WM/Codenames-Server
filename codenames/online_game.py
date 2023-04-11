@@ -10,7 +10,7 @@ import colorama
 import gensim.models.keyedvectors as word2vec
 import numpy as np
 from nltk.corpus import wordnet_ic
-from players.online import OnlineCodemaster, OnlineGuesser
+from players.online import OnlineCodemaster, OnlineGuesser, send
 
 class GameCondition(enum.Enum):
     """Enumeration that represents the different states of the game"""
@@ -63,6 +63,8 @@ class Game:
 
         self.codemaster = OnlineCodemaster(clientsocket, codemaster, cm_kwargs)
         self.guesser = OnlineGuesser(clientsocket, guesser, g_kwargs)
+
+        self.clientsocket = clientsocket
 
         self.cm_kwargs = cm_kwargs
         self.g_kwargs = g_kwargs
@@ -328,4 +330,4 @@ class Game:
                         self.write_results(game_counter)
                     print("You Won")
                     print("Game Counter:", game_counter)
-                    self.clientsocket.send(json.dumps({"game_over": "won"}))
+                    await send(self.clientsocket, json.dumps({"game_over": "won"}))
