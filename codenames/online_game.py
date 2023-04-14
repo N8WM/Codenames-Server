@@ -321,7 +321,7 @@ class Game:
                         self.write_results(game_counter)
                     print("You Lost")
                     print("Game Counter:", game_counter)
-                    self.clientsocket.send(json.dumps({"game_over": "lost"}))
+                    await self.clientsocket.send(json.dumps({"game_over": "lost"}))
 
                 elif game_condition == GameCondition.WIN:
                     self.game_end_time = time.time()
