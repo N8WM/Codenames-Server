@@ -37,7 +37,7 @@ async def RunGame(clientsocket):
     print("Starting game... (team red)")
 
     Game.clear_results()
-    seed = 0
+    seed = "time"
 
     bot_cm_class    = VectorCodemaster
     bot_g_class     = VectorGuesser
