@@ -12,7 +12,7 @@ class Role(enumerate):
     NONE = 2
 
 # set the role of the human player
-HUMAN_ROLE = Role.CODEMASTER
+HUMAN_ROLE = Role.GUESSER
 
 glove_50d = None
 glove_100d = None
