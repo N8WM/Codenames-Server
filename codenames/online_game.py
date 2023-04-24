@@ -28,7 +28,7 @@ class Game:
 
     def __init__(self, codemaster, guesser, clientsocket,
                  seed="time", do_print=True, do_log=True, game_name="default",
-                 cm_kwargs={}, g_kwargs={}):
+                 cm_kwargs={}, g_kwargs={}, replay_folder=None):
         """ Setup Game details
 
         Args:
