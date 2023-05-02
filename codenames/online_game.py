@@ -28,7 +28,7 @@ class Game:
 
     def __init__(self, codemaster, guesser, clientsocket,
                  seed="time", do_print=True, do_log=True, game_name="default",
-                 cm_kwargs={}, g_kwargs={}, replay_folder=None):
+                 cm_kwargs={}, g_kwargs={}, replay_folder=None, wordpool_file="game_wordpool.txt"):
         """ Setup Game details
 
         Args:
@@ -52,6 +52,7 @@ class Game:
             g_kwargs (dict, optional): 
                 kwargs passed to Guesser.
         """
+        game_wordpool = wordpool_file
 
         self.game_start_time = time.time()
         colorama.init()
@@ -82,9 +83,9 @@ class Game:
         print("seed:", self.seed)
 
         # load board words
-        with open("game_wordpool.txt", "r") as f:
+        with open(game_wordpool, "r") as f:
             temp = f.read().splitlines()
-            assert len(temp) == len(set(temp)), "game_wordpool.txt should not have duplicates"
+            assert len(temp) == len(set(temp)), f"{game_wordpool} should not have duplicates"
             random.shuffle(temp)
             self.words_on_board = temp[:25]
 

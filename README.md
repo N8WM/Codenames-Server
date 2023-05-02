@@ -37,9 +37,9 @@ Optionally if certain word vectors are needed, the directory to which should be 
 
   - (nltk corpus filename)
 
-- --glove_cm _path/to/glove_vectors_
+- --glove*cm \_path/to/glove_vectors*
   - (legacy argument for glove_glove.py)
-- --glove_guesser _path/to/glove_vectors_
+- --glove*guesser \_path/to/glove_vectors*
   - (legacy argument for glove_glove.py)
 
 An optional seed argument can be used for the purpose of consistency against the random library.
@@ -53,7 +53,7 @@ Other optional arguments include:
   - raise flag for suppressing logging
 - --no_print
   - raise flag for suppressing printing to std out
-- --game_name _String_
+- --game*name \_String*
   - game_name in logfile
 
 An example simulation of a _wordnet codemaster_ and a _word2vec guesser_ in the terminal from codenames/:  
@@ -240,3 +240,6 @@ To check that everything is installed without error type in a terminal:
 
 - [Glove Vectors](https://nlp.stanford.edu/data/glove.6B.zip) (~2.25 GB)
 - [Google News Vectors](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit) (~3.5 GB)
+
+To run the server for the frontend, simply run:
+`$ python3 index.py`
