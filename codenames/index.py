@@ -44,7 +44,7 @@ if __name__ == "__main__":
     print("Loading bots...", end=" ", flush=True)
     CM_CLASS, cm_kwargs = get_codemaster(CODEMASTER).load()
     G_CLASS, g_kwargs = get_guesser(GUESSER).load()
-    print("Loaded.")
+    print("Bots loaded.")
 
     try:
         asyncio.run(main())
