@@ -27,7 +27,8 @@ class OnlineHumanCodemaster(Codemaster):
             "prompt": {
                 "type": "str",
                 "message": "[Codemaster] Please enter a word and a number of guesses separated by a space"
-            }
+            },
+            "guesses_left": 0
         }
         await send(self.clientsocket, json.dumps(msg))
         clue = await receive(self.clientsocket)
@@ -66,6 +67,7 @@ class OnlineHumanGuesser(Guesser):
         print("The clue is:", clue, num)
         self.clue = clue
         self.num = num
+        self.guesses_left = num + 1
 
     def set_board(self, words):
         self.words = words
@@ -75,7 +77,8 @@ class OnlineHumanGuesser(Guesser):
             "prompt": {
                 "type": "str",
                 "message": f"[Guesser] The clue is \"{self.clue}\" for {self.num}, please enter a guess"
-            }
+            },
+            "guesses_left": self.guesses_left
         }
         await send(self.clientsocket, json.dumps(msg))
         answer = await receive(self.clientsocket)
@@ -89,6 +92,7 @@ class OnlineHumanGuesser(Guesser):
         return answer
 
     async def keep_guessing(self):
+        self.guesses_left -= 1
         msg = {
             "prompt": {
                 "type": "bool",

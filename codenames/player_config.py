@@ -4,6 +4,8 @@ from online_game import Game
 from players.codemaster import Codemaster
 from players.guesser import Guesser
 
+resources = {}
+
 
 class player_config:
     """
@@ -21,13 +23,25 @@ class player_config:
         - `role`: The role of the player, either `"codemaster"` or `"guesser"`
         - `name`: The name of the player, used to identify it in the game
         - `root`: The root directory of the module to load, or `None` if it is
-           already in the path
-        - `module`: The module to load the class from
-        - `classname`: The name of the class to load
+           already in the path (or the module is in the current directory)
+        - `module`: The module to load the codemaster/guesser class from
+        - `classname`: The name of the codemaster/guesser class to load from
+           the module
 
         # Optional Parameters
         - `kwargs`: The keyword arguments to pass to the class's constructor
-           (default `{}`)
+           (default `{}`). If this is a callable, it will be called to generate
+              the kwargs at runtime.
+            - Callable kwargs are useful if they require expensive computation or
+              need to be loaded into memory at runtime.
+            - In this case, it is recommended to use a lambda that returns the
+              kwargs to avoid loading the kwargs when a player config is not used.
+            - If you intend to use the same resource in multiple players, it is
+              recommended to use the `resource` class and pass it to the kwargs
+              with `resource("name", func, *args, **kwargs).get()`. This will
+              ensure that resources of the same name are only loaded once and
+              can be shared between players.
+
         """
         self.role = role
         self.name = name
@@ -45,7 +59,52 @@ class player_config:
         return class_, kwargs
 
 
-# Place your player configurations here
+class resource:
+    """
+    # A resource that can be shared between players
+    - If the resource has already been loaded, it will be reused
+    - If the resource has not been loaded, it will remain unloaded until it is
+        needed, at which point it will be loaded and cached
+    - This is useful for expensive resources that are shared between players
+    """
+    def __init__(self, name: str, func: Callable, *args, **kwargs):
+        """
+        # Parameters
+        - `name`: The name of the resource, used to identify when it has already
+            been loaded
+        - `func`: The function to call to load the resource
+        - `*args`: The positional arguments to pass to `func`
+        - `**kwargs`: The keyword arguments to pass to `func` - not to be confused
+            with the arguments to pass to player_config's `kwargs` parameter.
+        """
+        global resources
+        if name in resources:
+            self.ref = resources[name]
+        else:
+            self.ref = None
+            self.name = name
+            self.func = func
+            self.args = args
+            self.kwargs = kwargs
+            self.value = None
+            resources[name] = self
+
+    def get(self):
+        """
+        # Returns
+        - The resource, loaded if necessary
+        """
+        if self.ref is not None:
+            return self.ref.get()
+        if self.value is None:
+            self.value = self.func(*self.args, **self.kwargs)
+        return self.value
+
+
+####################################################################
+############## Place your player configurations below ##############
+####################################################################
+
 PLAYERS = [
 
     # Human codemaster
@@ -67,8 +126,8 @@ PLAYERS = [
         classname="VectorCodemaster",
         kwargs=lambda: {
             "vectors": [
-                Game.load_w2v("players/GoogleNews-vectors-negative300.bin"),
-                Game.load_glove_vecs("players/glove.6B.100d.txt")
+                resource("w2v", Game.load_w2v, "players/GoogleNews-vectors-negative300.bin").get(),
+                resource("glove", Game.load_glove_vecs, "players/glove.6B.100d.txt").get()
             ],
             "distance_threshold": 0.7,
             "same_clue_patience": 1,
@@ -109,8 +168,8 @@ PLAYERS = [
         classname="VectorGuesser",
         kwargs=lambda: {
             "vectors": [
-                Game.load_w2v("players/GoogleNews-vectors-negative300.bin"),
-                Game.load_glove_vecs("players/glove.6B.100d.txt")
+                resource("w2v", Game.load_w2v, "players/GoogleNews-vectors-negative300.bin").get(),
+                resource("glove", Game.load_glove_vecs, "players/glove.6B.100d.txt").get()
             ]
         }
     ),
@@ -125,6 +184,7 @@ PLAYERS = [
         kwargs={}
     )
 ]
+
 
 # utility functions for getting players
 def get_codemasters() -> List[player_config]:
