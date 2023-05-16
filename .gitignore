@@ -121,4 +121,7 @@ venv.bak/
 # keys
 *.key
 
+# replays
+replays/
+
 ada_embeddings.txt

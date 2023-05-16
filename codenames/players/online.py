@@ -135,9 +135,12 @@ class OnlineCodemaster(Codemaster):
 class OnlineGuesser(Guesser):
     """Online guesser container"""
 
-    def __init__(self, clientsocket, guesser, g_kwargs={}):
+    def __init__(self, clientsocket, guesser, is_replaying=False, g_kwargs={}):
         super().__init__()
-        self.guesser = guesser(**g_kwargs)
+        if is_replaying:
+            self.guesser = guesser
+        else:
+            self.guesser = guesser(**g_kwargs)
         self.clientsocket = clientsocket
 
     def set_clue(self, clue, num):

@@ -10,6 +10,7 @@ import colorama
 import gensim.models.keyedvectors as word2vec
 import numpy as np
 from nltk.corpus import wordnet_ic
+from replay import GuessAction, HintAction, ReplayHandler
 from players.online import OnlineCodemaster, OnlineGuesser, send
 
 class GameCondition(enum.Enum):
@@ -28,7 +29,8 @@ class Game:
 
     def __init__(self, codemaster, guesser, clientsocket,
                  seed="time", do_print=True, do_log=True, game_name="default",
-                 cm_kwargs={}, g_kwargs={}, replay_folder=None, wordpool_file="game_wordpool.txt"):
+                 cm_kwargs={}, g_kwargs={}, replay_folder="replays", do_record=False,
+                 wordpool_file="game_wordpool.txt", is_replaying=False):
         """ Setup Game details
 
         Args:
@@ -51,6 +53,16 @@ class Game:
                 kwargs passed to Codemaster.
             g_kwargs (dict, optional): 
                 kwargs passed to Guesser.
+            replay_folder (str, optional):
+                Folder to save replays to. Defaults to "replays".
+            do_record (bool, optional):
+                Whether to record the game replay or not. Defaults to False.
+            wordpool_file (str, optional):
+                File to load words from. Defaults to "game_wordpool.txt".
+            is_replaying (bool, optional):
+                Whether the game is being replayed or not. Defaults to False.
+                This is used to determine the seed and the codemaster/guesser
+                classes.
         """
         game_wordpool = wordpool_file
 
@@ -63,7 +75,7 @@ class Game:
             sys.stdout = open(os.devnull, 'w')
 
         self.codemaster = OnlineCodemaster(clientsocket, codemaster, cm_kwargs)
-        self.guesser = OnlineGuesser(clientsocket, guesser, g_kwargs)
+        self.guesser = OnlineGuesser(clientsocket, self.codemaster.codemaster if is_replaying else guesser, is_replaying, g_kwargs)
 
         self.clientsocket = clientsocket
 
@@ -73,14 +85,31 @@ class Game:
         self.game_name = game_name
 
         # set seed so that board/keygrid can be reloaded later
-        if seed == 'time':
+        if is_replaying:
+            self.seed = self.codemaster.codemaster.seed
+            random.seed(self.seed)
+        elif seed == 'time':
             self.seed = time.time()
             random.seed(self.seed)
         else:
             self.seed = seed
-            random.seed(int(seed))
+            random.seed(seed)
 
         print("seed:", self.seed)
+
+        self.replayManager = None if not do_record else ReplayHandler(
+            time.time(),
+            self.seed,
+            replay_folder,
+            True,
+            **{
+                "one_team_game": True,
+                "first_team": "red"
+            }
+        )
+
+        if self.replayManager is not None:
+            self.replayManager.save_replay()
 
         # load board words
         with open(game_wordpool, "r") as f:
@@ -282,7 +311,10 @@ class Game:
             self._display_board_codemaster()
 
             # codemaster gives clue & number here
-            clue, clue_num = await self.codemaster.get_clue()
+            clue, clue_num = await self.codemaster.get_clue()  # TODO: implement intentions
+            if self.replayManager is not None:
+                self.replayManager.add_action(HintAction(clue, clue_num, "red"))
+                self.replayManager.save_replay()
             game_counter += 1
             keep_guessing = True
             guess_num = 0
@@ -295,9 +327,13 @@ class Game:
             while guess_num <= clue_num and keep_guessing and game_condition == GameCondition.HIT_RED:
                 await self.guesser.set_board(words_in_play)
                 guess_answer = await self.guesser.get_answer()
+                action = GuessAction(guess_answer, "red")
 
                 # if no comparisons were made/found than retry input from codemaster
                 if guess_answer is None or guess_answer == "no comparisons":
+                    if self.replayManager is not None:
+                        self.replayManager.add_action(action)
+                        self.replayManager.save_replay()
                     break
                 guess_answer_index = words_in_play.index(guess_answer.upper().strip())
                 game_condition = self._accept_guess(guess_answer_index)
@@ -309,15 +345,25 @@ class Game:
                     print("Keep Guessing? the clue is ", clue, clue_num)
                     if (guess_num <= clue_num):
                         keep_guessing = await self.guesser.keep_guessing()
+                        if keep_guessing:
+                            action.keep_guessing()
+                    if self.replayManager is not None:
+                        self.replayManager.add_action(action)
+                        self.replayManager.save_replay()
 
                 # if guesser selected a civilian or a blue-paired word
                 elif game_condition == GameCondition.CONTINUE:
+                    if self.replayManager is not None:
+                        self.replayManager.add_action(action)
                     break
 
                 elif game_condition == GameCondition.LOSS:
                     self.game_end_time = time.time()
                     game_counter = 25
                     self._display_board_codemaster()
+                    if self.replayManager is not None:
+                        self.replayManager.add_action(action)
+                        self.replayManager.save_replay(True)
                     if self.do_log:
                         self.write_results(game_counter)
                     print("You Lost")
@@ -327,6 +373,9 @@ class Game:
                 elif game_condition == GameCondition.WIN:
                     self.game_end_time = time.time()
                     self._display_board_codemaster()
+                    if self.replayManager is not None:
+                        self.replayManager.add_action(action)
+                        self.replayManager.save_replay(True)
                     if self.do_log:
                         self.write_results(game_counter)
                     print("You Won")
