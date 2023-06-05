@@ -4,32 +4,49 @@ from player_config import get_codemaster, get_guesser
 from online_game import Game
 
 
-# Game configuration
+##### Game configuration #####
+# Name of file containing the wordpool
 WORDPOOL_FILE = "game_wordpool.txt"
+
+# Name of Codemaster player_config to use
 CODEMASTER = "vector"
+
+# Name of Guesser player_config to use
 GUESSER = "human"
+
+##### Replay configuration #####
+# Whether to replay a game or play a new game
+DO_REPLAY = False
+
+# Replay file ID (i.e. "1684222943.9041533", don't include .json)
+# Only used if DO_REPLAY is True
+REPLAY_ID = "<ID>"
+
+# Whether to record the game in a replay file
+# Only used if DO_REPLAY is False
+RECORD_REPLAY = True
+
+##### Don't change these #####
 CM_CLASS, G_CLASS, cm_kwargs, g_kwargs = None, None, {}, {}
 
-# Replay configuration
-DO_REPLAY = False
-REPLAY_ID = None # "1684222943.9041533"
 
-
+# Automatically called when DO_REPLAY is True
 async def RunReplay(clientsocket):
     global REPLAY_ID
     print(f"Replaying game {REPLAY_ID}... (team red)", flush=True)
     await Game(
         ReplayHandler, ReplayHandler, clientsocket,
         do_print=True,
-        game_name="Online Game",
+        game_name="Online Game Replay",
         cm_kwargs={"replay_id": REPLAY_ID},
         wordpool_file=WORDPOOL_FILE,
         is_replaying=True
     ).run()
 
 
+# Automatically called when DO_REPLAY is False
 async def RunGame(clientsocket):
-    global WORDPOOL_FILE, CODEMASTER, GUESSER, CM_CLASS, G_CLASS, cm_kwargs, g_kwargs
+    global WORDPOOL_FILE, CODEMASTER, GUESSER, RECORD_REPLAY, CM_CLASS, G_CLASS, cm_kwargs, g_kwargs
 
     if CODEMASTER == "human":
         cm_kwargs = {"clientsocket": clientsocket}
@@ -47,7 +64,7 @@ async def RunGame(clientsocket):
         game_name="Online Game",
         cm_kwargs=cm_kwargs,
         g_kwargs=g_kwargs,
-        do_record=True,
+        do_record=RECORD_REPLAY,
         wordpool_file=WORDPOOL_FILE
     ).run()
 
